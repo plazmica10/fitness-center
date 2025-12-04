@@ -1,0 +1,28 @@
+meta {
+  name: create class
+  type: http
+  seq: 10
+}
+
+post {
+  url: http://localhost:8080/classes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Morning Yoga",
+    "trainer_id": "REPLACE_WITH_TRAINER_ID",
+    "room_id": "REPLACE_WITH_ROOM_ID",
+    "start_time": "2025-12-05T08:00:00",
+    "end_time": "2025-12-05T09:00:00",
+    "capacity": 15,
+    "description": "Relaxing morning yoga session"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

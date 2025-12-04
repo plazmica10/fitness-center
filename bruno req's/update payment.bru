@@ -1,0 +1,26 @@
+meta {
+  name: update payment
+  type: http
+  seq: 16
+}
+
+put {
+  url: http://localhost:8080/payments/REPLACE_WITH_PAYMENT_ID
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "payment_id": "REPLACE_WITH_PAYMENT_ID",
+    "member_id": "REPLACE_WITH_MEMBER_ID",
+    "class_id": "REPLACE_WITH_CLASS_ID",
+    "amount": 30.00,
+    "timestamp": "2025-12-04T14:30:00"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

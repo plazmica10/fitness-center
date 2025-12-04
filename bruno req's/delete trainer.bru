@@ -1,0 +1,16 @@
+meta {
+  name: delete trainer
+  type: http
+  seq: 8
+}
+
+delete {
+  url: http://localhost:8080/trainers/ed10afe3-34a6-4f2b-b56a-79ba30c489e5
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

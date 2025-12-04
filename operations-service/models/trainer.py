@@ -1,7 +1,10 @@
 from pydantic import BaseModel
+from typing import Optional
+from uuid import UUID
+
 
 class Trainer(BaseModel):
-    trainer_id: int
+    trainer_id: Optional[UUID] = None
     name: str
     specialization: str
-    rating: float | None = None
+    rating: Optional[float] = None

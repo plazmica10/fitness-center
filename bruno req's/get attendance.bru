@@ -1,0 +1,16 @@
+meta {
+  name: get attendance
+  type: http
+  seq: 20
+}
+
+get {
+  url: http://localhost:8080/attendances/REPLACE_WITH_EVENT_ID
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

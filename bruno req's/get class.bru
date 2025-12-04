@@ -1,0 +1,16 @@
+meta {
+  name: get class
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8080/classes/REPLACE_WITH_CLASS_ID
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

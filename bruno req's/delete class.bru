@@ -1,0 +1,16 @@
+meta {
+  name: delete class
+  type: http
+  seq: 12
+}
+
+delete {
+  url: http://localhost:8080/classes/REPLACE_WITH_CLASS_ID
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

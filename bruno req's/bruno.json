@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "bruno req's",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

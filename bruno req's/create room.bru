@@ -1,0 +1,24 @@
+meta {
+  name: create room
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/rooms
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  "name": "Studio C",
+  "capacity": 21,
+  "has_equipment": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

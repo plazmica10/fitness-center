@@ -1,0 +1,16 @@
+meta {
+  name: get payment
+  type: http
+  seq: 15
+}
+
+get {
+  url: http://localhost:8080/payments/REPLACE_WITH_PAYMENT_ID
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
