@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from models.payment import Payment
 from db import select_all, insert_one, select_one, update_one, delete_one
+from utils.validators import (
+    ValidationError,
+    validate_payment_amount,
+    validate_foreign_keys
+)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -14,11 +19,20 @@ def list_payments():
 # TODO: should call member service to verify member_id exists
 @router.post("/", response_model=Payment)
 def create_payment(payment: Payment):
-    payment_dict = payment.dict()
-    generated_id = insert_one("payments", payment_dict)
-    if generated_id and not payment.payment_id:
-        payment.payment_id = generated_id
-    return payment
+    try:
+        # Validate amount
+        validate_payment_amount(payment.amount)
+        
+        # Validate class exists
+        validate_foreign_keys(None, class_id=payment.class_id)
+        
+        payment_dict = payment.dict()
+        generated_id = insert_one("payments", payment_dict)
+        if generated_id and not payment.payment_id:
+            payment.payment_id = generated_id
+        return payment
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
 
 
 @router.get("/{payment_id}", response_model=Payment)
@@ -34,10 +48,20 @@ def update_payment(payment_id: str, payment: Payment):
     existing = select_one("payments", "payment_id", payment_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Payment not found")
-    payment_dict = payment.dict()
-    update_one("payments", "payment_id", payment_id, payment_dict)
-    payment.payment_id = payment_id
-    return payment
+    
+    try:
+        # Validate amount
+        validate_payment_amount(payment.amount)
+        
+        # Validate class exists
+        validate_foreign_keys(None, class_id=payment.class_id)
+        
+        payment_dict = payment.dict()
+        update_one("payments", "payment_id", payment_id, payment_dict)
+        payment.payment_id = payment_id
+        return payment
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
 
 
 @router.delete("/{payment_id}")
