@@ -6,11 +6,13 @@ from routers.payments import router as payments_router
 from routers.trainers import router as trainers_router
 from routers.classes import router as classes_router
 from routers.attendances import router as attendances_router
+from routers.queries import router as queries_router
+from routers.analytics import router as analytics_router
 
 app = FastAPI(
     title="Operations Service",
     version="1.0.0",
-    description="Microservice 2"
+    description="Fitness Center Operations Microservice"
 )
 
 app.include_router(rooms_router)
@@ -18,6 +20,8 @@ app.include_router(payments_router)
 app.include_router(trainers_router)
 app.include_router(classes_router)
 app.include_router(attendances_router)
+app.include_router(queries_router)
+app.include_router(analytics_router)
 
 @app.on_event("startup")
 def on_startup():

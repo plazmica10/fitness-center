@@ -110,6 +110,37 @@ def select_one(table: str, key: str, value: Any) -> Optional[Dict[str, Any]]:
     return rows[0] if rows else None
 
 
+def select_by_filters(table: str, filters: Dict[str, Any], order_by: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Select rows matching multiple filters with optional ordering"""
+    if not filters:
+        return select_all(table)
+    
+    where_clauses = []
+    for key, value in filters.items():
+        if value is None:
+            continue
+        if isinstance(value, (str, UUID)):
+            where_clauses.append(f"{key} = '{value}'")
+        elif isinstance(value, bool):
+            where_clauses.append(f"{key} = {1 if value else 0}")
+        else:
+            where_clauses.append(f"{key} = {value}")
+    
+    if not where_clauses:
+        return select_all(table)
+    
+    where_clause = " AND ".join(where_clauses)
+    query = f"SELECT * FROM {table} WHERE {where_clause}"
+    
+    if order_by:
+        query += f" ORDER BY {order_by}"
+    
+    query += " FORMAT JSON"
+    resp = _http_post(query)
+    data = resp.json()
+    return data.get("data", [])
+
+
 def update_one(table: str, key: str, value: Any, obj: Dict[str, Any]) -> bool:
     # Use ALTER TABLE UPDATE for updating records
     # mutations are async; this returns True if the request was accepted.
@@ -157,7 +188,10 @@ def _normalize(value: Any) -> Any:
         return 1 if value else 0
     if isinstance(value, UUID):
         return str(value)
-    if isinstance(value, (datetime, date)):
+    if isinstance(value, datetime):
+        # Format without microseconds: YYYY-MM-DD HH:MM:SS
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+    if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, dict):
         return {k: _normalize(v) for k, v in value.items()}

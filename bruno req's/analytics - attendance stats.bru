@@ -1,0 +1,16 @@
+meta {
+  name: analytics - class attendance stats
+  type: http
+  seq: 27
+}
+
+get {
+  url: http://localhost:8080/analytics/classes/attendance-stats
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

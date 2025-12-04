@@ -1,0 +1,16 @@
+meta {
+  name: get attendances by class
+  type: http
+  seq: 25
+}
+
+get {
+  url: http://localhost:8080/queries/attendances/by-class/REPLACE_WITH_CLASS_ID
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

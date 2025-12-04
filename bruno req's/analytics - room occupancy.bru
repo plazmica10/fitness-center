@@ -1,0 +1,16 @@
+meta {
+  name: analytics - room occupancy
+  type: http
+  seq: 29
+}
+
+get {
+  url: http://localhost:8080/analytics/rooms/occupancy
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

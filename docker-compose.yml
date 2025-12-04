@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: operations-service/Dockerfile
-    image: fitness-center-operations:latest
+    image: operations-service:latest
     ports:
       - "8080:8080"
     restart: unless-stopped
