@@ -12,4 +12,5 @@ class Class(BaseModel):
     start_time: datetime
     end_time: datetime
     capacity: Optional[int] = None
+    price: Optional[float] = None
     description: Optional[str] = None

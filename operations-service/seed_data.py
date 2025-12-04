@@ -94,19 +94,20 @@ def seed_classes(trainers, rooms):
         print("No trainers or rooms available, skipping classes")
         return []
     
-    # Create classes for the next 14 days
-    start_date = datetime.now()
+    # Create classes starting from tomorrow for the next 14 days
+    start_date = datetime.now() + timedelta(days=1)
+    start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     created_classes = []
     
     class_templates = [
-        {"name": "Morning Yoga", "duration": 60, "capacity": 20, "description": "Start your day with energizing yoga flow"},
-        {"name": "HIIT Cardio", "duration": 45, "capacity": 25, "description": "High intensity interval training"},
-        {"name": "Strength Training", "duration": 60, "capacity": 15, "description": "Build muscle and strength"},
-        {"name": "Spin Class", "duration": 45, "capacity": 15, "description": "Indoor cycling workout"},
-        {"name": "Pilates Core", "duration": 50, "capacity": 12, "description": "Core strengthening and flexibility"},
-        {"name": "Boxing Basics", "duration": 60, "capacity": 10, "description": "Learn boxing fundamentals"},
-        {"name": "Dance Fitness", "duration": 45, "capacity": 30, "description": "Fun dance-based cardio workout"},
-        {"name": "Evening Yoga", "duration": 60, "capacity": 20, "description": "Relaxing evening flow"},
+        {"name": "Morning Yoga", "duration": 60, "capacity": 20, "price": 15.0, "description": "Start your day with energizing yoga flow"},
+        {"name": "HIIT Cardio", "duration": 45, "capacity": 25, "price": 12.0, "description": "High intensity interval training"},
+        {"name": "Strength Training", "duration": 60, "capacity": 15, "price": 18.0, "description": "Build muscle and strength"},
+        {"name": "Spin Class", "duration": 45, "capacity": 15, "price": 20.0, "description": "Indoor cycling workout"},
+        {"name": "Pilates Core", "duration": 50, "capacity": 12, "price": 22.0, "description": "Core strengthening and flexibility"},
+        {"name": "Boxing Basics", "duration": 60, "capacity": 10, "price": 25.0, "description": "Learn boxing fundamentals"},
+        {"name": "Dance Fitness", "duration": 45, "capacity": 30, "price": 10.0, "description": "Fun dance-based cardio workout"},
+        {"name": "Evening Yoga", "duration": 60, "capacity": 20, "price": 15.0, "description": "Relaxing evening flow"},
     ]
     
     for day in range(14):
@@ -130,6 +131,7 @@ def seed_classes(trainers, rooms):
                 "start_time": start_time.isoformat(),
                 "end_time": end_time.isoformat(),
                 "capacity": template["capacity"],
+                "price": template["price"],
                 "description": template["description"]
             }
             
@@ -167,10 +169,9 @@ def seed_attendances(classes, members):
     created_attendances = []
     statuses = ["checked-in", "checked-out", "cancelled"]
     
-    # Create attendances for past classes (last 7 days)
-    past_classes = [c for c in classes if datetime.fromisoformat(c["start_time"]) < datetime.now()]
-    
-    for class_info in past_classes:
+    # Create attendances for upcoming classes (simulate pre-bookings)
+    # Take first 20 classes to create bookings
+    for class_info in classes[:20]:
         # Random number of attendances (50-90% of capacity)
         capacity = class_info.get("capacity", 20)
         num_attendances = int(capacity * (0.5 + (hash(class_info["class_id"]) % 40) / 100))
@@ -179,9 +180,8 @@ def seed_attendances(classes, members):
         attending_members = random.sample(members, min(num_attendances, len(members)))
         
         for member_id in attending_members:
-            # Most are checked-out, some checked-in, few cancelled
-            status_weights = [0.1, 0.8, 0.1]  # checked-in, checked-out, cancelled
-            status = random.choices(statuses, weights=status_weights)[0]
+            # For future classes, use checked-in as pre-booking
+            status = "checked-in"
             
             attendance_data = {
                 "class_id": class_info["class_id"],
@@ -201,43 +201,37 @@ def seed_attendances(classes, members):
     
     return created_attendances
 
-def seed_payments(classes, members):
-    """Create payment records"""
+def seed_payments(classes, members, attendances):
+    """Create payment records for members with attendances"""
     print("\nCreating payment records...")
     
-    if not classes or not members:
-        print("No classes or members available, skipping payments")
+    if not classes or not members or not attendances:
+        print("No classes, members, or attendances available, skipping payments")
         return []
     
     import random
     created_payments = []
     
-    # Create payments for past classes
-    past_classes = [c for c in classes if datetime.fromisoformat(c["start_time"]) < datetime.now()]
+    # Create payment for each attendance
+    # Group attendances by class_id to get members who booked
+    from collections import defaultdict
+    attendance_by_class = defaultdict(list)
+    for att in attendances:
+        attendance_by_class[att["class_id"]].append(att["member_id"])
     
-    for class_info in past_classes:
+    for class_id, member_ids in attendance_by_class.items():
+        # Find the class info
+        class_info = next((c for c in classes if c["class_id"] == class_id), None)
+        if not class_info:
+            continue
         capacity = class_info.get("capacity", 20)
         num_payments = int(capacity * (0.5 + (hash(class_info["class_id"]) % 40) / 100))
         
-        # Payment amounts based on class type
-        base_amounts = {
-            "yoga": 15.0,
-            "cardio": 12.0,
-            "strength": 18.0,
-            "spin": 20.0,
-            "pilates": 22.0,
-            "boxing": 25.0,
-            "dance": 10.0,
-            "default": 15.0
-        }
+        # Use the price from the class, or default to 15.0
+        amount = class_info.get('price', 15.0)
         
-        class_name = class_info['name'].lower()
-        amount = next((v for k, v in base_amounts.items() if k in class_name), base_amounts["default"])
-        
-        # Select UNIQUE random members for payments
-        paying_members = random.sample(members, min(num_payments, len(members)))
-        
-        for member_id in paying_members:
+        # Create payment for each member who has attendance
+        for member_id in member_ids:
             payment_data = {
                 "member_id": member_id,
                 "class_id": class_info["class_id"],
@@ -252,7 +246,7 @@ def seed_payments(classes, members):
             except Exception as e:
                 pass  # Silently skip duplicates
         
-        print(f"  ✓ Created {len(paying_members)} payments for {class_info['name']} (${amount} each)")
+        print(f"  ✓ Created {len(member_ids)} payments for {class_info['name']} (${amount} each)")
     
     return created_payments
 
@@ -271,7 +265,7 @@ def main():
     classes = seed_classes(trainers, rooms)
     members = seed_members()
     attendances = seed_attendances(classes, members)
-    payments = seed_payments(classes, members)
+    payments = seed_payments(classes, members, attendances)
     
     # Summary - fetch actual counts from database
     print("\n" + "=" * 60)

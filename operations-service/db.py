@@ -49,7 +49,7 @@ def init_tables():
         "CREATE TABLE IF NOT EXISTS rooms (room_id UUID, name String, capacity Int32, has_equipment UInt8) ENGINE = MergeTree ORDER BY room_id",
         "CREATE TABLE IF NOT EXISTS trainers (trainer_id UUID, name String, specialization String, rating Nullable(Float64)) ENGINE = MergeTree ORDER BY trainer_id",
         "CREATE TABLE IF NOT EXISTS payments (payment_id UUID, member_id UUID, class_id UUID, amount Float64, timestamp DateTime) ENGINE = MergeTree ORDER BY payment_id",
-        "CREATE TABLE IF NOT EXISTS classes (class_id UUID, name String, trainer_id Nullable(UUID), room_id Nullable(UUID), start_time DateTime, end_time DateTime, capacity Nullable(Int32), description Nullable(String)) ENGINE = MergeTree ORDER BY class_id",
+        "CREATE TABLE IF NOT EXISTS classes (class_id UUID, name String, trainer_id Nullable(UUID), room_id Nullable(UUID), start_time DateTime, end_time DateTime, capacity Nullable(Int32), price Nullable(Float64), description Nullable(String)) ENGINE = MergeTree ORDER BY class_id",
         "CREATE TABLE IF NOT EXISTS attendances (event_id UUID, class_id UUID, member_id UUID, timestamp DateTime, status String) ENGINE = MergeTree ORDER BY event_id",
     ]
     for s in stmts:
