@@ -61,6 +61,17 @@ services:
     depends_on:
       - clickhouse
 
+  frontend:
+    build:
+      context: ./frontend-service
+    image: fitness-frontend:latest
+    container_name: fitness_frontend
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    depends_on:
+      - operations-service
+
 volumes:
   clickhouse_data:
     driver: local
