@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-free:latest
+    container_name: fitness-oracle-db
+    platform: linux/arm64
+    environment:
+      ORACLE_PASSWORD: FitnessAdmin2025
+      ORACLE_DATABASE: FITNESSDB
+      APP_USER: fitness_user
+      APP_USER_PASSWORD: fitness123
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - type: bind
+        source: /Users/ognjen/Coding/NAIS:IIS/fitness-center/oracle-db/init-scripts
+        target: /opt/oracle/scripts/startup
+    networks:
+      - fitness-network
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  oracle-data:
+
+networks:
+  fitness-network:
+    driver: bridge
