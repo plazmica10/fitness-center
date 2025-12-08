@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------------------------------------------------------------
  ZAHTEV: Kreiranje jednog netrivijalnog trigera (AFTER INSERT).
 
- REŠENJE: Triger koji se aktivira NAKON unosa novog prisustva (ATTENDANCE) i automatski
+ Triger koji se aktivira NAKON unosa novog prisustva (ATTENDANCE) i automatski
            preračunava i ažurira kolonu `total_attendance` na roditeljskoj tabeli `CLASSES`.
            Pre toga skripta dodaje potrebna kolone (ako ne postoje).
 ====================================================================================================================================
@@ -93,15 +93,58 @@ END;
 ====================================================================================================================================
  ZADATAK 3: SQL INDEKSI
 ------------------------------------------------------------------------------------------------------------------------------------
- ZAHTEV:  A) Napišite upit sa filtriranjem (po datumu) i agregacijom nad tabelom `payments` (join sa `classes` i `trainers`).
-         B) Prikažite EXPLAIN PLAN pre indeksa.
-         C) Kreirajte kompozitni B-tree indeks koji optimizuje taj upit.
-         D) Prikažite EXPLAIN PLAN posle indeksa.
-         E) Uključite anonimni PL/SQL blok koji generiše 800,000 mock plaćanja u tabelu `payments`.
+ ZAHTEV:  A) Uupit sa filtriranjem (po datumu) i agregacijom nad tabelom `payments` (join sa `classes` i `trainers`).
+         B) EXPLAIN PLAN pre indeksa.
+         C) Kompozitni B-tree indeks koji optimizuje taj upit.
+         D) EXPLAIN PLAN posle indeksa.
 
- REŠENJE: Upit računa ukupnu zaradu i broj plaćanja po treneru za zadati period.
+ Upit računa ukupnu zaradu i broj plaćanja po treneru za zadati period.
 ====================================================================================================================================
 */
+-- E) Generisanje 100,000 mock redova u tabeli `payments` (koristimo SYS_GUID za payment_id i random članove)
+DECLARE
+    v_count NUMBER := 100000;
+    v_batch NUMBER := 5000; -- ubacuj u batch-evima radi performansi
+    v_done NUMBER := 0;
+    v_random_class RAW(16);
+    v_min_date DATE := SYSDATE - 365; -- unazad godinu dana
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Počinje generisanje ' || v_count || ' mock plaćanja...');
+
+    WHILE v_done < v_count LOOP
+        FOR i IN 1..v_batch LOOP
+            -- Izaberemo nasumičan postojeći class_id (ako nema klasa, ubacićemo NULL pa će FK ako postoji puknuti)
+            BEGIN
+                SELECT class_id INTO v_random_class FROM (
+                    SELECT class_id FROM classes ORDER BY DBMS_RANDOM.RANDOM
+                ) WHERE ROWNUM = 1;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    v_random_class := NULL;
+            END;
+
+            INSERT /*+ APPEND */ INTO payments(payment_id, member_id, class_id, amount, timestamp)
+            VALUES (
+                SYS_GUID(),
+                SYS_GUID(),
+                v_random_class,
+                TRUNC(DBMS_RANDOM.VALUE(5, 100), 2),
+                v_min_date + DBMS_RANDOM.VALUE(0, 365)
+            );
+        END LOOP;
+
+        v_done := v_done + v_batch;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Ubaceeno: ' || v_done);
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Generisanje završeno. Ukupno ubaceno: ' || v_done);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Greška pri generisanju mock plaćanja: ' || SQLERRM);
+        ROLLBACK;
+END;
+/
 
 --------------------------------------
 PROMPT
@@ -175,52 +218,6 @@ GROUP BY t.trainer_id, t.name;
 
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, NULL, 'BASIC +COST'));
 
---------------------------------------
-
--- E) Generisanje 100,000 mock redova u tabeli `payments` (koristimo SYS_GUID za payment_id i random članove)
-DECLARE
-    v_count NUMBER := 100000;
-    v_batch NUMBER := 5000; -- ubacuj u batch-evima radi performansi
-    v_done NUMBER := 0;
-    v_random_class RAW(16);
-    v_min_date DATE := SYSDATE - 365; -- unazad godinu dana
-BEGIN
-    DBMS_OUTPUT.PUT_LINE('Počinje generisanje ' || v_count || ' mock plaćanja...');
-
-    WHILE v_done < v_count LOOP
-        FOR i IN 1..v_batch LOOP
-            -- Izaberemo nasumičan postojeći class_id (ako nema klasa, ubacićemo NULL pa će FK ako postoji puknuti)
-            BEGIN
-                SELECT class_id INTO v_random_class FROM (
-                    SELECT class_id FROM classes ORDER BY DBMS_RANDOM.RANDOM
-                ) WHERE ROWNUM = 1;
-            EXCEPTION
-                WHEN NO_DATA_FOUND THEN
-                    v_random_class := NULL;
-            END;
-
-            INSERT /*+ APPEND */ INTO payments(payment_id, member_id, class_id, amount, timestamp)
-            VALUES (
-                SYS_GUID(),
-                SYS_GUID(),
-                v_random_class,
-                TRUNC(DBMS_RANDOM.VALUE(5, 100), 2),
-                v_min_date + DBMS_RANDOM.VALUE(0, 365)
-            );
-        END LOOP;
-
-        v_done := v_done + v_batch;
-        COMMIT;
-        DBMS_OUTPUT.PUT_LINE('Ubaceeno: ' || v_done);
-    END LOOP;
-
-    DBMS_OUTPUT.PUT_LINE('Generisanje završeno. Ukupno ubaceno: ' || v_done);
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Greška pri generisanju mock plaćanja: ' || SQLERRM);
-        ROLLBACK;
-END;
-/
 
 COMMIT;
 
@@ -232,7 +229,7 @@ COMMIT;
  ZAHTEV: Procedura koja koristi RECORD, TABLE OF, BULK COLLECT, kompleksan upit (WITH + JOIN >=3 tabela + GROUP BY + HAVING),
          formatira kao JSON i upisuje u tabelu `REPORTS`.
 
- REŠENJE: Procedura `GENERISI_MESECNI_IZVESTAJ_TRENERA` kreira mesečni izveštaj po trenerima (broj prisustava i prihod).
+    Procedura `GENERISI_MESECNI_IZVESTAJ_TRENERA` kreira mesečni izveštaj po trenerima (broj prisustava i prihod).
 ====================================================================================================================================
 */
 
