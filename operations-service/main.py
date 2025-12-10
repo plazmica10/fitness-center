@@ -38,9 +38,11 @@ def on_startup():
     # ensure ClickHouse tables exist
     try:
         db.init_tables()
-    except Exception:
-        # don't crash startup; errors will show in logs
-        pass
+    except Exception as e:
+        # log errors but don't crash startup
+        import traceback
+        print(f"Error initializing tables: {e}")
+        traceback.print_exc()
 
 @app.get("/")
 def root():

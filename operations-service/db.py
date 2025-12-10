@@ -45,13 +45,15 @@ def _http_post(query: str, data: Optional[str] = None) -> requests.Response:
 
 
 def init_tables():
-    # Create simple tables if they don't exist
+    # Use PARTITION BY for time-based tables (monthly partitions) and
+    # choose ORDER BY expressions that help the most common query patterns
+    # Note: Cannot use Nullable columns in ORDER BY unless allow_nullable_key is enabled
     stmts = [
-        "CREATE TABLE IF NOT EXISTS rooms (room_id UUID, name String, capacity Int32, has_equipment UInt8) ENGINE = MergeTree ORDER BY room_id",
-        "CREATE TABLE IF NOT EXISTS trainers (trainer_id UUID, name String, specialization String, rating Nullable(Float64)) ENGINE = MergeTree ORDER BY trainer_id",
-        "CREATE TABLE IF NOT EXISTS payments (payment_id UUID, member_id String, class_id UUID, amount Float64, timestamp DateTime) ENGINE = MergeTree ORDER BY payment_id",
-        "CREATE TABLE IF NOT EXISTS classes (class_id UUID, name String, trainer_id Nullable(UUID), room_id Nullable(UUID), start_time DateTime, end_time DateTime, capacity Nullable(Int32), price Nullable(Float64), description Nullable(String)) ENGINE = MergeTree ORDER BY class_id",
-        "CREATE TABLE IF NOT EXISTS attendances (event_id UUID, class_id UUID, member_id String, timestamp DateTime, status String) ENGINE = MergeTree ORDER BY event_id",
+        "CREATE TABLE IF NOT EXISTS rooms (room_id UUID, name String, capacity Int32, has_equipment UInt8) ENGINE = MergeTree() ORDER BY (room_id)",
+        "CREATE TABLE IF NOT EXISTS trainers (trainer_id UUID, name String, email Nullable(String), specialization String, rating Nullable(Float64), experience_years Nullable(Int32)) ENGINE = MergeTree() ORDER BY (trainer_id)",
+        "CREATE TABLE IF NOT EXISTS payments (payment_id UUID, member_id String, class_id UUID, amount Float64, timestamp DateTime) ENGINE = MergeTree() PARTITION BY toYYYYMM(timestamp) ORDER BY (class_id, timestamp)",
+        "CREATE TABLE IF NOT EXISTS classes (class_id UUID, name String, trainer_id Nullable(UUID), room_id Nullable(UUID), start_time DateTime, end_time DateTime, capacity Nullable(Int32), price Nullable(Float64), description Nullable(String)) ENGINE = MergeTree() PARTITION BY toYYYYMM(start_time) ORDER BY (start_time, class_id)",
+        "CREATE TABLE IF NOT EXISTS attendances (event_id UUID, class_id UUID, member_id String, timestamp DateTime, status String) ENGINE = MergeTree() PARTITION BY toYYYYMM(timestamp) ORDER BY (class_id, timestamp, event_id)",
     ]
     for s in stmts:
         _http_post(s)
