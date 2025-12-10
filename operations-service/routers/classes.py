@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
 from datetime import datetime
 from models.classes import Class as ClassModel
@@ -11,6 +11,7 @@ from utils.validators import (
     check_trainer_availability,
     validate_foreign_keys
 )
+from auth_middleware import get_current_user, require_trainer_or_admin
 
 router = APIRouter(prefix="/classes", tags=["classes"])
 
@@ -22,7 +23,7 @@ def list_classes():
 
 
 @router.post("/", response_model=ClassModel)
-def create_class(c: ClassModel):
+def create_class(c: ClassModel, current_user: dict = Depends(require_trainer_or_admin)):
     try:
         # Validate times
         validate_class_times(c.start_time, c.end_time)

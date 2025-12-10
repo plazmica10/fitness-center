@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from models.payment import Payment
 from db import select_all, insert_one, select_one, update_one, delete_one
@@ -7,18 +7,19 @@ from utils.validators import (
     validate_payment_amount,
     validate_foreign_keys
 )
+from auth_middleware import get_current_user, require_admin
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 @router.get("/", response_model=List[Payment])
-def list_payments():
+def list_payments(current_user: dict = Depends(get_current_user)):
     rows = select_all("payments")
     return rows
 
 # TODO: should call member service to verify member_id exists
 @router.post("/", response_model=Payment)
-def create_payment(payment: Payment):
+def create_payment(payment: Payment, current_user: dict = Depends(get_current_user)):
     try:
         # Validate amount
         validate_payment_amount(payment.amount)

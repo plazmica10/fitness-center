@@ -7,14 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY operations-service/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
     && /opt/venv/bin/pip install -r /app/requirements.txt
 
 # Copy source
-COPY operations-service /app
+COPY . /app
 
 FROM python:3.11-slim
 ENV PATH="/opt/venv/bin:$PATH"

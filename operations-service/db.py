@@ -15,7 +15,8 @@ _BASE_URL = f"http://{CLICKHOUSE_HOST}:{CLICKHOUSE_PORT}"
 
 def _http_post(query: str, data: Optional[str] = None) -> requests.Response:
     url = _BASE_URL
-    params = {"query": query}
+    # Ensure ClickHouse ALTER UPDATE/DELETE wait for completion
+    params = {"query": query, "mutations_sync": "1"}
     # Only send HTTP basic auth when both user and password are provided
     if CLICKHOUSE_USER and CLICKHOUSE_PASSWORD:
         auth = (CLICKHOUSE_USER, CLICKHOUSE_PASSWORD)
@@ -48,9 +49,9 @@ def init_tables():
     stmts = [
         "CREATE TABLE IF NOT EXISTS rooms (room_id UUID, name String, capacity Int32, has_equipment UInt8) ENGINE = MergeTree ORDER BY room_id",
         "CREATE TABLE IF NOT EXISTS trainers (trainer_id UUID, name String, specialization String, rating Nullable(Float64)) ENGINE = MergeTree ORDER BY trainer_id",
-        "CREATE TABLE IF NOT EXISTS payments (payment_id UUID, member_id UUID, class_id UUID, amount Float64, timestamp DateTime) ENGINE = MergeTree ORDER BY payment_id",
+        "CREATE TABLE IF NOT EXISTS payments (payment_id UUID, member_id String, class_id UUID, amount Float64, timestamp DateTime) ENGINE = MergeTree ORDER BY payment_id",
         "CREATE TABLE IF NOT EXISTS classes (class_id UUID, name String, trainer_id Nullable(UUID), room_id Nullable(UUID), start_time DateTime, end_time DateTime, capacity Nullable(Int32), price Nullable(Float64), description Nullable(String)) ENGINE = MergeTree ORDER BY class_id",
-        "CREATE TABLE IF NOT EXISTS attendances (event_id UUID, class_id UUID, member_id UUID, timestamp DateTime, status String) ENGINE = MergeTree ORDER BY event_id",
+        "CREATE TABLE IF NOT EXISTS attendances (event_id UUID, class_id UUID, member_id String, timestamp DateTime, status String) ENGINE = MergeTree ORDER BY event_id",
     ]
     for s in stmts:
         _http_post(s)

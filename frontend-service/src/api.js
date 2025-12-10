@@ -1,7 +1,29 @@
 import axios from 'axios'
 
-// No /api prefix — requests are sent to root paths (e.g. /classes)
-const client = axios.create({ baseURL: '', timeout: 10000 })
+// Use /api prefix for all API requests
+const client = axios.create({ baseURL: '/api', timeout: 10000 })
+
+// Add auth token to requests
+client.interceptors.request.use(config => {
+    const token = localStorage.getItem('token')
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+// Handle 401 errors (unauthorized)
+client.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('username')
+            window.location.href = '/login'
+        }
+        return Promise.reject(error)
+    }
+)
 
 function normalizePath(path) {
     if (!path.startsWith('/')) path = '/' + path

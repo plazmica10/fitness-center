@@ -1,7 +1,7 @@
 """
 Business logic validation utilities for the operations service
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from uuid import UUID
 
@@ -14,13 +14,29 @@ class ValidationError(Exception):
         super().__init__(self.message)
 
 
+def _to_aware_utc(dt: datetime) -> datetime:
+    """Ensure datetime is timezone-aware in UTC"""
+    if dt.tzinfo is None or dt.utcoffset() is None:
+        # Treat naive as UTC
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _fmt_clickhouse(dt: datetime) -> str:
+    """Format datetime for ClickHouse (naive string) using UTC"""
+    utc = _to_aware_utc(dt)
+    return utc.replace(tzinfo=None).strftime('%Y-%m-%d %H:%M:%S')
+
+
 def validate_class_times(start_time: datetime, end_time: datetime) -> None:
-    """Validate class start and end times"""
-    if start_time >= end_time:
+    """Validate class start and end times (timezone-safe)"""
+    s = _to_aware_utc(start_time)
+    e = _to_aware_utc(end_time)
+    if s >= e:
         raise ValidationError("Class start time must be before end time", "start_time")
     
-    # Prevent booking classes in the past
-    if start_time < datetime.now():
+    # Prevent booking classes in the past (compare in UTC)
+    if s < datetime.now(timezone.utc):
         raise ValidationError("Cannot create classes in the past", "start_time")
 
 
@@ -59,19 +75,22 @@ def check_room_availability(db, room_id: UUID, start_time: datetime, end_time: d
     
     exclude_clause = f"AND class_id != '{exclude_class_id}'" if exclude_class_id else ""
     
+    start_str = _fmt_clickhouse(start_time)
+    end_str = _fmt_clickhouse(end_time)
+
     query = f"""
         SELECT class_id, name, start_time, end_time
         FROM classes
         WHERE room_id = '{room_id}'
         AND (
-            (start_time <= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time > '{start_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time <= '{start_str}' 
+             AND end_time > '{start_str}')
             OR
-            (start_time < '{end_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time >= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time < '{end_str}' 
+             AND end_time >= '{end_str}')
             OR
-            (start_time >= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time <= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time >= '{start_str}' 
+             AND end_time <= '{end_str}')
         )
         {exclude_clause}
         FORMAT JSON
@@ -97,19 +116,22 @@ def check_trainer_availability(db, trainer_id: UUID, start_time: datetime, end_t
     
     exclude_clause = f"AND class_id != '{exclude_class_id}'" if exclude_class_id else ""
     
+    start_str = _fmt_clickhouse(start_time)
+    end_str = _fmt_clickhouse(end_time)
+
     query = f"""
         SELECT class_id, name, start_time, end_time
         FROM classes
         WHERE trainer_id = '{trainer_id}'
         AND (
-            (start_time <= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time > '{start_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time <= '{start_str}' 
+             AND end_time > '{start_str}')
             OR
-            (start_time < '{end_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time >= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time < '{end_str}' 
+             AND end_time >= '{end_str}')
             OR
-            (start_time >= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}' 
-             AND end_time <= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}')
+            (start_time >= '{start_str}' 
+             AND end_time <= '{end_str}')
         )
         {exclude_clause}
         FORMAT JSON
