@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID
 
 
@@ -10,3 +10,4 @@ class Payment(BaseModel):
     class_id: UUID
     amount: float
     timestamp: datetime
+    status: Literal["pending", "completed", "refunded"] = "completed"

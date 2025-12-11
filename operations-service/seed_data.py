@@ -304,7 +304,8 @@ def seed_payments(classes, member_map, attendances, admin_token=None):
                 "member_id": member_id,
                 "class_id": class_info["class_id"],
                 "amount": float(amount),
-                "timestamp": class_info["start_time"]
+                "timestamp": class_info["start_time"],
+                "status": "completed"
             }
             
             try:
@@ -344,28 +345,78 @@ def wait_for_services():
 
 def drop_mongodb_collections():
     """Drop all collections in MongoDB to start fresh"""
+    print("\n  Deleting all users via API...")
+    
+    # First try to get admin token
+    admin_token = None
     try:
-        from pymongo import MongoClient
-        print("\n  Connecting to MongoDB to drop existing collections...")
-        client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
-        db = client["fitness_users"]
+        response = requests.post(
+            "http://localhost:8000/login",
+            json={"username": "admin", "password": "123456"},
+            timeout=5
+        )
+        if response.status_code == 200:
+            admin_token = response.json()["access_token"]
+    except:
+        pass
+    
+    if not admin_token:
+        print("  ⚠ Could not get admin token, cannot delete users via API")
+        print("  ⚠ Trying direct MongoDB connection...")
+        try:
+            from pymongo import MongoClient
+            client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
+            db = client["fitness_users"]
+            
+            # Drop the users collection
+            if "users" in db.list_collection_names():
+                db.users.drop()
+                print("  ✓ Dropped 'users' collection from MongoDB")
+            else:
+                print("  ℹ No 'users' collection found, starting fresh")
+            
+            client.close()
+            return True
+        except Exception as e:
+            print(f"  ⚠ Could not drop collections: {e}")
+            return True  # Continue anyway
+    
+    # Get all users
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        response = requests.get("http://localhost:8000/users", headers=headers, timeout=5)
         
-        # Drop the users collection
-        if "users" in db.list_collection_names():
-            db.users.drop()
-            print("  ✓ Dropped 'users' collection from MongoDB")
-        else:
-            print("  ℹ No 'users' collection found, starting fresh")
+        if response.status_code != 200:
+            print(f"  ⚠ Could not fetch users: {response.status_code}")
+            return True
         
-        client.close()
+        users = response.json()
+        deleted_count = 0
+        
+        for user in users:
+            user_id = user.get("id") or user.get("_id")
+            if user_id:
+                try:
+                    del_resp = requests.delete(
+                        f"http://localhost:8000/users/{user_id}",
+                        headers=headers,
+                        timeout=5
+                    )
+                    if del_resp.status_code in [204, 200]:
+                        deleted_count += 1
+                except:
+                    pass
+        
+        print(f"  ✓ Deleted {deleted_count} users from MongoDB")
         return True
+        
     except Exception as e:
-        print(f"  ⚠ Could not drop collections: {e}")
+        print(f"  ⚠ Error deleting users: {e}")
         return True  # Continue anyway
 
 
-def create_user(username, email, full_name, password, role):
-    """Create a user in the user service"""
+def create_user(username, email, full_name, password, role, balance=150.0):
+    """Create a user in the user service with initial balance"""
     try:
         response = requests.post(
             "http://localhost:8000/register",
@@ -374,7 +425,8 @@ def create_user(username, email, full_name, password, role):
                 "email": email,
                 "full_name": full_name,
                 "password": password,
-                "role": role
+                "role": role,
+                "balance": balance
             },
             timeout=5
         )

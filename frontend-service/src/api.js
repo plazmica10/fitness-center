@@ -29,8 +29,13 @@ function normalizePath(path) {
     if (!path.startsWith('/')) path = '/' + path
     const [p, q] = path.split('?')
     const segments = p.split('/').filter(Boolean)
+
+    // List of auth/user endpoints that should NOT have trailing slash
+    const authEndpoints = ['me', 'login', 'register', 'verify-token']
+
     // If this is a top-level collection (e.g. /classes), ensure trailing slash
-    if (segments.length === 1) {
+    // BUT skip auth endpoints and balance endpoints
+    if (segments.length === 1 && !authEndpoints.includes(segments[0]) && !path.includes('balance')) {
         const base = `/${segments[0]}/`
         return q ? `${base}?${q}` : base
     }

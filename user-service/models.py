@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=100)
     role: Literal["member", "trainer", "admin"] = "member"
+    balance: float = Field(default=0.0, ge=0.0)
 
 
 class UserCreate(UserBase):
@@ -35,6 +36,7 @@ class UserResponse(UserBase):
     id: str = Field(alias="_id")
     created_at: datetime
     is_active: bool
+    balance: float = 0.0
     
     class Config:
         populate_by_name = True
@@ -53,3 +55,13 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class BalanceUpdate(BaseModel):
+    amount: float = Field(..., gt=0)
+    
+
+class BalanceResponse(BaseModel):
+    user_id: str
+    balance: float
+    previous_balance: float = None

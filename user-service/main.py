@@ -5,7 +5,7 @@ from typing import List
 import uvicorn
 
 from database import users_collection, init_db
-from models import UserCreate, UserResponse, UserUpdate, LoginRequest, Token, TokenData
+from models import UserCreate, UserResponse, UserUpdate, LoginRequest, Token, TokenData, BalanceUpdate, BalanceResponse
 from auth import (
     get_password_hash, 
     verify_password, 
@@ -259,6 +259,132 @@ def verify_token(current_user: TokenData = Depends(get_current_user)):
         "username": current_user.username,
         "role": current_user.role
     }
+
+
+@app.get("/users/{user_id}/balance", response_model=BalanceResponse)
+def get_user_balance(user_id: str, current_user: TokenData = Depends(get_current_user)):
+    """Get user's current balance"""
+    from bson import ObjectId
+    
+    try:
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Users can check their own balance or admins can check anyone's
+    if current_user.role != "admin" and user["username"] != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    return BalanceResponse(
+        user_id=str(user["_id"]),
+        balance=user.get("balance", 0.0)
+    )
+
+
+@app.post("/users/{user_id}/balance/add", response_model=BalanceResponse)
+def add_balance(
+    user_id: str,
+    balance_update: BalanceUpdate,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """Add funds to user's balance (user can add to own account or admin can add to any)"""
+    from bson import ObjectId
+    
+    try:
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Users can add to their own balance or admins can add to anyone's
+    if current_user.role != "admin" and user["username"] != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    current_balance = user.get("balance", 0.0)
+    new_balance = current_balance + balance_update.amount
+    
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"balance": new_balance, "updated_at": datetime.utcnow()}}
+    )
+    
+    return BalanceResponse(
+        user_id=str(user["_id"]),
+        balance=new_balance,
+        previous_balance=current_balance
+    )
+
+
+@app.post("/users/{user_id}/balance/deduct", response_model=BalanceResponse)
+def deduct_balance(
+    user_id: str,
+    balance_update: BalanceUpdate,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """
+    Deduct funds from user's balance (internal service use or admin)
+    This endpoint is critical for the booking transaction
+    """
+    from bson import ObjectId
+    
+    try:
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    current_balance = user.get("balance", 0.0)
+    
+    # Check sufficient funds
+    if current_balance < balance_update.amount:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=f"Insufficient balance. Current: {current_balance}, Required: {balance_update.amount}"
+        )
+    
+    new_balance = current_balance - balance_update.amount
+    
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"balance": new_balance, "updated_at": datetime.utcnow()}}
+    )
+    
+    return BalanceResponse(
+        user_id=str(user["_id"]),
+        balance=new_balance,
+        previous_balance=current_balance
+    )
 
 
 if __name__ == "__main__":

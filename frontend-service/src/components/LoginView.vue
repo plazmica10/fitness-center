@@ -33,8 +33,8 @@
     <div class="demo-credentials">
       <h3>Demo Credentials:</h3>
       <p>Admin: <code>admin / 123456</code></p>
-      <p>Trainer: <code>jameswilson / 123456</code></p>
-      <p>Member: <code>jane_member / 123456</code></p>
+      <p>Trainer: <code>mikechen / 123456</code></p>
+      <p>Member: <code>alex_chen / 123456</code></p>
     </div>
   </div>
 </template>
