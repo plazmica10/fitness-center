@@ -82,7 +82,7 @@
         <div v-for="booking in myBookings" :key="booking.event_id || booking.attendance_id" class="class-card booked">
           <div class="class-header">
             <h3>{{ booking.class_name || 'Unknown Class' }}</h3>
-            <span v-if="booking.status" class="status-badge">{{ booking.status }}</span>
+            <span v-if="booking.status" :class="['status-badge', 'status-' + booking.status]">{{ booking.status }}</span>
           </div>
           <div class="class-details">
             <p><strong>Time:</strong> {{ formatDateTime(booking.start_time) }}</p>
@@ -420,13 +420,32 @@ h2 {
 }
 
 .status-badge {
-  background: #e0e7ff;
-  color: #4338ca;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: capitalize;
+}
+
+.status-badge.status-confirmed,
+.status-badge:not([class*="status-"]) {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-checked-in {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-checked-out {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .class-details {

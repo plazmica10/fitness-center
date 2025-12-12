@@ -177,7 +177,7 @@
                     },
                     "pluginVersion": "4.11.2",
                     "queryType": "table",
-                    "rawSql": "SELECT\n  count(*) as total_payments\nFROM payments",
+                    "rawSql": "SELECT\n  count(*) as total_payments\nFROM payments\nWHERE status != 'refunded'",
                     "refId": "A"
                 }
             ],
@@ -254,7 +254,7 @@
                         }
                     },
                     "queryType": "table",
-                    "rawSql": "SELECT\n  count(*) as total_attendances\nFROM attendances",
+                    "rawSql": "SELECT\n  count(*) as total_attendances\nFROM attendances\nWHERE status != 'cancelled'",
                     "refId": "A"
                 }
             ],

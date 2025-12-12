@@ -166,6 +166,11 @@ export default {
   color: #1e40af;
 }
 
+.status-confirmed {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .status-cancelled {
   background: #fee2e2;
   color: #991b1b;

@@ -60,7 +60,7 @@ def validate_trainer_rating(rating: Optional[float]) -> None:
 
 def validate_attendance_status(status: str) -> None:
     """Validate attendance status"""
-    valid_statuses = ["checked-in", "checked-out", "cancelled"]
+    valid_statuses = ["confirmed", "checked-in", "checked-out", "cancelled"]
     if status not in valid_statuses:
         raise ValidationError(
             f"Invalid attendance status. Must be one of: {', '.join(valid_statuses)}", 

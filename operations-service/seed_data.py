@@ -253,19 +253,19 @@ def seed_attendances(classes, member_map):
         # Select UNIQUE random member IDs for this class
         attending_member_ids = random.sample(member_ids, min(num_attendances, len(member_ids)))
         
-        # For first 60 classes, use past timestamps (simulate historical data)
-        # For remaining classes, use actual class start time
+        # All attendance timestamps are in the past (booking time)
+        days_ago = random.randint(1, 30)
+        hours_ago = random.randint(0, 23)
+        past_timestamp = (now - timedelta(days=days_ago, hours=hours_ago)).isoformat()
+        
+        # Simulate historical data: treat first 60 classes as "past" even though they're scheduled for future
+        # This creates realistic historical attendance patterns without violating "no past classes" rule
         if idx < 60:
-            # Create attendance timestamp in the past (random time in last 30 days)
-            days_ago = random.randint(1, 30)
-            hours_ago = random.randint(0, 23)
-            past_timestamp = (now - timedelta(days=days_ago, hours=hours_ago)).isoformat()
-            status_options = ["checked-in", "checked-out", "checked-out", "cancelled"]
-            use_status = random.choice(status_options)
+            # Historical attendance - status is "checked-out" (85%) or "cancelled" (15%)
+            use_status = "cancelled" if random.random() < 0.15 else "checked-out"
         else:
-            # Future class - use class start time and checked-in status
-            past_timestamp = class_info["start_time"]
-            use_status = "checked-in"
+            # Future booking - status is "confirmed" (90%) or "cancelled" (10%)
+            use_status = "cancelled" if random.random() < 0.10 else "confirmed"
         
         for member_id in attending_member_ids:
             attendance_data = {

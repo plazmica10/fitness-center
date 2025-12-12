@@ -9,4 +9,4 @@ class Attendance(BaseModel):
     class_id: UUID
     member_id: str  # MongoDB ObjectId string
     timestamp: datetime
-    status: str  # "entered" or "left"
+    status: str  # "confirmed", "checked-in", "checked-out", or "cancelled"
