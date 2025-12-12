@@ -117,23 +117,25 @@ def seed_classes(trainers, rooms, admin_token=None):
     if admin_token:
         headers["Authorization"] = f"Bearer {admin_token}"
     
-    # Create classes starting from tomorrow for the next 14 days
+    # Create classes starting from tomorrow for the next 44 days (to have enough data)
     start_date = datetime.now() + timedelta(days=1)
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     created_classes = []
     
     class_templates = [
-        {"name": "Morning Yoga", "duration": 60, "capacity": 20, "price": 15.0, "description": "Start your day with energizing yoga flow"},
+        {"name": "Yoga", "duration": 60, "capacity": 20, "price": 15.0, "description": "Start your day with energizing yoga flow"},
         {"name": "HIIT Cardio", "duration": 45, "capacity": 25, "price": 12.0, "description": "High intensity interval training"},
         {"name": "Strength Training", "duration": 60, "capacity": 15, "price": 18.0, "description": "Build muscle and strength"},
         {"name": "Spin Class", "duration": 45, "capacity": 15, "price": 20.0, "description": "Indoor cycling workout"},
-        {"name": "Pilates Core", "duration": 50, "capacity": 12, "price": 22.0, "description": "Core strengthening and flexibility"},
-        {"name": "Boxing Basics", "duration": 60, "capacity": 10, "price": 25.0, "description": "Learn boxing fundamentals"},
+        {"name": "Pilates", "duration": 50, "capacity": 12, "price": 22.0, "description": "Core strengthening and flexibility"},
+        {"name": "Boxing", "duration": 60, "capacity": 10, "price": 25.0, "description": "Learn boxing fundamentals"},
         {"name": "Dance Fitness", "duration": 45, "capacity": 30, "price": 10.0, "description": "Fun dance-based cardio workout"},
-        {"name": "Evening Yoga", "duration": 60, "capacity": 20, "price": 15.0, "description": "Relaxing evening flow"},
+        {"name": "Zumba", "duration": 60, "capacity": 25, "price": 14.0, "description": "Latin-inspired dance workout"},
     ]
     
-    for day in range(14):
+    class_counter = {template["name"]: 1 for template in class_templates}
+    
+    for day in range(44):  # 44 days of future classes
         date = start_date + timedelta(days=day)
         
         # Create 3-5 classes per day
@@ -142,13 +144,17 @@ def seed_classes(trainers, rooms, admin_token=None):
             trainer = trainers[i % len(trainers)]
             room = rooms[i % len(rooms)]
             
+            # Add number suffix to class name
+            class_name = f"{template['name']} {class_counter[template['name']]}"
+            class_counter[template['name']] += 1
+            
             # Morning classes (8am, 10am, 12pm)
             start_hour = 8 + (i * 2)
             start_time = date.replace(hour=start_hour, minute=0, second=0)
             end_time = start_time + timedelta(minutes=template["duration"])
             
             class_data = {
-                "name": template["name"],
+                "name": class_name,
                 "trainer_id": trainer["trainer_id"],
                 "room_id": room["room_id"],
                 "start_time": start_time.isoformat(),
@@ -163,7 +169,7 @@ def seed_classes(trainers, rooms, admin_token=None):
                 if response.status_code == 200:
                     class_info = response.json()
                     created_classes.append(class_info)
-                    print(f"  ✓ Created: {template['name']} on {date.strftime('%Y-%m-%d')} at {start_hour}:00")
+                    print(f"  ✓ Created: {class_name} on {date.strftime('%Y-%m-%d')} at {start_hour}:00")
                 else:
                     print(f"  ✗ Failed to create class: {response.text[:100]}")
             except Exception as e:
@@ -232,11 +238,12 @@ def seed_attendances(classes, member_map):
     import random
     created_attendances = []
     
-    # Create attendances for upcoming classes (simulate pre-bookings)
-    # Take first 20 classes to create bookings
+    # Create attendances for classes - simulate historical data by backdating timestamps
+    # Take more classes to create bookings (100 classes)
     member_ids = list(member_map.values())
+    now = datetime.now()
     
-    for class_info in classes[:20]:
+    for idx, class_info in enumerate(classes[:100]):
         # Random number of attendances (50-90% of capacity)
         capacity = class_info.get("capacity", 20)
         if capacity is None:
@@ -246,12 +253,26 @@ def seed_attendances(classes, member_map):
         # Select UNIQUE random member IDs for this class
         attending_member_ids = random.sample(member_ids, min(num_attendances, len(member_ids)))
         
+        # For first 60 classes, use past timestamps (simulate historical data)
+        # For remaining classes, use actual class start time
+        if idx < 60:
+            # Create attendance timestamp in the past (random time in last 30 days)
+            days_ago = random.randint(1, 30)
+            hours_ago = random.randint(0, 23)
+            past_timestamp = (now - timedelta(days=days_ago, hours=hours_ago)).isoformat()
+            status_options = ["checked-in", "checked-out", "checked-out", "cancelled"]
+            use_status = random.choice(status_options)
+        else:
+            # Future class - use class start time and checked-in status
+            past_timestamp = class_info["start_time"]
+            use_status = "checked-in"
+        
         for member_id in attending_member_ids:
             attendance_data = {
                 "class_id": class_info["class_id"],
                 "member_id": member_id,
-                "timestamp": class_info["start_time"],
-                "status": "checked-in"
+                "timestamp": past_timestamp,
+                "status": use_status
             }
             
             try:
@@ -280,12 +301,20 @@ def seed_payments(classes, member_map, attendances, admin_token=None):
     if admin_token:
         headers["Authorization"] = f"Bearer {admin_token}"
     
-    # Create payment for each attendance
+    # Create payment for each attendance with historical timestamp simulation
     # Group attendances by class_id to get members who booked
     from collections import defaultdict
     attendance_by_class = defaultdict(list)
+    attendance_timestamps = {}  # Store timestamp for each attendance
+    
     for att in attendances:
-        attendance_by_class[att["class_id"]].append(att["member_id"])
+        class_id = att["class_id"]
+        member_id = att["member_id"]
+        attendance_by_class[class_id].append(member_id)
+        # Store the attendance timestamp to use for payment
+        if class_id not in attendance_timestamps:
+            attendance_timestamps[class_id] = {}
+        attendance_timestamps[class_id][member_id] = att.get("timestamp")
     
     for class_id, member_ids in attendance_by_class.items():
         # Find the class info
@@ -300,11 +329,14 @@ def seed_payments(classes, member_map, attendances, admin_token=None):
         
         # Create payment for each member who has attendance
         for member_id in member_ids:
+            # Use the attendance timestamp if available, otherwise use class start time
+            payment_timestamp = attendance_timestamps.get(class_id, {}).get(member_id, class_info["start_time"])
+            
             payment_data = {
                 "member_id": member_id,
                 "class_id": class_info["class_id"],
                 "amount": float(amount),
-                "timestamp": class_info["start_time"],
+                "timestamp": payment_timestamp,
                 "status": "completed"
             }
             
