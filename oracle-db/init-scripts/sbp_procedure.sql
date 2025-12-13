@@ -154,12 +154,13 @@ PROMPT ============================================
 
 SET TIMING ON;
 -- A) Upit: ukupna zarada i broj plaćanja po treneru za prošli mesec
-SELECT COUNT(*) AS broj_placanja, NVL(SUM(p.amount),0) AS ukupna_zarada
+SELECT t.trainer_id, t.name, COUNT(p.payment_id) AS broj_placanja, SUM(p.amount) AS ukupna_zarada
 FROM payments p
 JOIN classes c ON p.class_id = c.class_id
 JOIN trainers t ON c.trainer_id = t.trainer_id
 WHERE p.timestamp >= TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM')
-  AND p.timestamp < TRUNC(SYSDATE, 'MM');
+  AND p.timestamp < TRUNC(SYSDATE, 'MM')
+GROUP BY t.trainer_id, t.name;
 SET TIMING OFF;
 
 PROMPT
@@ -197,12 +198,13 @@ PROMPT TESTIRANJE SA INDEKSOM
 PROMPT ============================================
 
 SET TIMING ON;
-SELECT COUNT(*) AS broj_placanja, NVL(SUM(p.amount),0) AS ukupna_zarada
+SELECT t.trainer_id, t.name, COUNT(p.payment_id) AS broj_placanja, SUM(p.amount) AS ukupna_zarada
 FROM payments p
 JOIN classes c ON p.class_id = c.class_id
 JOIN trainers t ON c.trainer_id = t.trainer_id
 WHERE p.timestamp >= TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM')
-  AND p.timestamp < TRUNC(SYSDATE, 'MM');
+  AND p.timestamp < TRUNC(SYSDATE, 'MM')
+GROUP BY t.trainer_id, t.name;
 SET TIMING OFF;
 
 PROMPT
